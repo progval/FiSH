@@ -1,4 +1,4 @@
-###
+### 
 # Copyright (c) 2016, megahambone
 # All rights reserved.
 #
@@ -63,22 +63,22 @@ class Fish(callbacks.Privmsg):
     _password = None
 
     def outFilter(self, irc, msg):
-	"""
-	Function fired on every outgoing message - if the encryption is on, here's where it gets applied.
-	"""
+        """
+        Function fired on every outgoing message - if the encryption is on, here's where it gets applied.
+        """
 
-	# TODO need better filtering (PRIVMSG/NOTICE)
+        # TODO need better filtering (PRIVMSG/NOTICE)
 
-	# sure, in a better world, i'd do this different, but without this block, supybot throws a ton of errors during connect.
-	try:
-	    b = msg.args[1]
-	except IndexError:
-	    return msg
+        # sure, in a better world, i'd do this different, but without this block, supybot throws a ton of errors during connect.
+        try:
+            b = msg.args[1]
+        except IndexError:
+            return msg
 
-	if not msg.args[1].startswith('DH1080_FINISH'): # This message happens to confirm encryption. If we encrypt it, we never complete the handshake.
+        if not msg.args[1].startswith('DH1080_FINISH'): # This message happens to confirm encryption. If we encrypt it, we never complete the handshake.
             if(msg.args[0] in self._privkey): # But, if it's any other message and if the channel/user is in the private key storage
-		if self._privkey.get(msg.args[0])['encrypt'] == True: # And encryption for that channel/user is on
-	        	msg = ircmsgs.privmsg(msg.args[0], self._mircryption_cbc_pack(self._privkey.get(msg.args[0])['key'], msg.args[1]), msg=msg) # encrypt the message.
+                if self._privkey.get(msg.args[0])['encrypt'] == True: # And encryption for that channel/user is on
+                    msg = ircmsgs.privmsg(msg.args[0], self._mircryption_cbc_pack(self._privkey.get(msg.args[0])['key'], msg.args[1]), msg=msg) # encrypt the message.
         return msg # and return it.
 
     def listCommands(self): # override the list. Maybe unnecessary, but I don't want people poking around with setpass and setkey.
@@ -86,30 +86,30 @@ class Fish(callbacks.Privmsg):
         return commands
 
     def inFilter(self, irc, msg):
-	"""
-	Function fires on every incoming message. to the bot. Here's where the bulk of it works.
-	"""
+        """
+        Function fires on every incoming message. to the bot. Here's where the bulk of it works.
+        """
 
-	# TODO need better filtering (PRIVMSG/NOTICE)
+        # TODO need better filtering (PRIVMSG/NOTICE)
 
-	# some of the messages from the connection process make the bot throw errors.
-	try: # this seems to work (same as with outFilter - probably a better way to do this)
-	    b = msg.args[1]
-	except IndexError:
-	    return msg
-	
-	target = None
-	
-	if msg.args[0] == conf.supybot.nick(): # if the "channel" is the bot's nick
-	    target = msg.nick # then the target is the sender.
-	else:
-	    target = msg.args[0] # otherwise it's the channel.
+        # some of the messages from the connection process make the bot throw errors.
+        try: # this seems to work (same as with outFilter - probably a better way to do this)
+            b = msg.args[1]
+        except IndexError:
+            return msg
+    
+        target = None
+    
+        if msg.args[0] == conf.supybot.nick(): # if the "channel" is the bot's nick
+            target = msg.nick # then the target is the sender.
+        else:
+            target = msg.args[0] # otherwise it's the channel.
 
-	# it's important that some of these functions don't work cleartext. So I check for them before I do any decoding.
-	if msg.args[1].startswith('!setkey') or msg.args[1].startswith('setkey'): # if someone tries to set a key in cleartext
+        # it's important that some of these functions don't work cleartext. So I check for them before I do any decoding.
+        if msg.args[1].startswith('!setkey') or msg.args[1].startswith('setkey'): # if someone tries to set a key in cleartext
             irc.sendMsg(ircmsgs.privmsg(target, "You can't set a key in cleartext. Key change password cleared for Administrative review.")) # tell them they're bad
-	    self._password = None # and invalidate that public password.
-	    return # and don't run the command.
+            self._password = None # and invalidate that public password.
+            return # and don't run the command.
 
         if msg.args[1].startswith('!getkey') or msg.args[1].startswith('getkey'): # if someone tries to get the key in cleartext
             irc.sendMsg(ircmsgs.privmsg(target, "You can't get the key in cleartext. Send a keyx and PM me before you try again.")) # tell them off
@@ -120,36 +120,36 @@ class Fish(callbacks.Privmsg):
             self._password = None # wipe the current password 
             return # and don't run the command
 
-	# if someone wants to identify or register to the bot we want to prevent that so passwords for FiSH control don't get put anywhere cleartext.
-	if msg.args[1].startswith('!identify') or msg.args[1].startswith('identify') or msg.args[1].startswith('register') or msg.args[1].startswith('!register'):
+        # if someone wants to identify or register to the bot we want to prevent that so passwords for FiSH control don't get put anywhere cleartext.
+        if msg.args[1].startswith('!identify') or msg.args[1].startswith('identify') or msg.args[1].startswith('register') or msg.args[1].startswith('!register'):
             irc.sendMsg(ircmsgs.privmsg(target, "When the Fish module is loaded, this command is only allowed via secure pm. Send a keyx and try again")) # don't let them do it
             return # and don't run the command
 
-	# if there are any other commands you want to block while encrypted, do it here.
-	
-	# decryption:
-	if msg.args[1].startswith('+OK'): # if it looks encrypted
-	    if target in self._privkey and self._privkey.get(target)['encrypt'] == True: # and this user has encryption on
-	        msg = ircmsgs.privmsg(msg.args[0], self._mircryption_cbc_unpack(self._privkey.get(target)['key'], msg.args[1]), msg=msg) # convert to cleartext for interpretation.
-	    else: 
-		if not target.startswith('#'): # if you're getting encrypted data from a private message and it can't be decoded, let the user know.
-                    irc.sendMsg(ircmsgs.privmsg(msg.nick, "You're speaking gibberish to me. Resend a keyx so I can understand you.")) #done
-	
-	# handling the sensitive commands now that they've been decrypted
-	if msg.args[1].startswith('!setkey') or msg.args[1].startswith('setkey'): # if they want to set the key
-	    if not msg.args[0] == conf.supybot.nick(): # and they're not doing it in a PM
+        # if there are any other commands you want to block while encrypted, do it here.
+    
+        # decryption:
+        if msg.args[1].startswith('+OK'): # if it looks encrypted
+            if target in self._privkey and self._privkey.get(target)['encrypt'] == True: # and this user has encryption on
+                msg = ircmsgs.privmsg(msg.args[0], self._mircryption_cbc_unpack(self._privkey.get(target)['key'], msg.args[1]), msg=msg) # convert to cleartext for interpretation.
+        else: 
+            if not target.startswith('#'): # if you're getting encrypted data from a private message and it can't be decoded, let the user know.
+                irc.sendMsg(ircmsgs.privmsg(msg.nick, "You're speaking gibberish to me. Resend a keyx so I can understand you.")) #done
+    
+        # handling the sensitive commands now that they've been decrypted
+        if msg.args[1].startswith('!setkey') or msg.args[1].startswith('setkey'): # if they want to set the key
+            if not msg.args[0] == conf.supybot.nick(): # and they're not doing it in a PM
                 irc.reply("I'm not going to let you set a channel key in public. Key change password cleared for Administrative review.") # tell them off
                 self._password = None # invalidate the password on the bot to lock it out
                 return # and don't run the command
 
-	# same with setting the password.
+        # same with setting the password.
         if msg.args[1].startswith('!setpass') or msg.args[1].startswith('setpass'):
             if not msg.args[0] == conf.supybot.nick(): # if done in a channel, not PM
                 irc.reply("I'm not going to let you set the key changing password in public. That's bad. Key change password cleared for Administrative review.") # tell them off
                 self._password = None # invalidate current password
-		return # ignore command
+                return # ignore command
 
-	# if they've made it here, it will flow through to the bot.
+        # if they've made it here, it will flow through to the bot.
         return msg
 
     def setpass(self, irc, msg, args, password):
@@ -157,9 +157,9 @@ class Fish(callbacks.Privmsg):
 
         Sets the bot update password
         """
-	# admin only, please.
+        # admin only, please.
         if not ircdb.checkCapability(msg.prefix, 'admin'):
-	    irc.errorNoCapability('admin')
+        irc.errorNoCapability('admin')
             return
 
         self._password = password # set the password
@@ -167,7 +167,7 @@ class Fish(callbacks.Privmsg):
     setpass = wrap(setpass, ['text'])
 
     def setkey(self, irc, msg, args, channel, password, privkey):
-	"""<channel> <password> <privkey>
+        """<channel> <password> <privkey>
 
         Sets a key for a channel.
         """
@@ -182,75 +182,75 @@ class Fish(callbacks.Privmsg):
     setkey = wrap(setkey, ['channel', 'something', 'something'])
  
     def getkey(self, irc, msg, args, channel):
-	"""<channel>
+        """<channel>
 
-	Gets a key for a channel
-	"""
-	# remember that the bot will only fire this command if it's sent via encryption.
-	# check if not in pm and handle appropriately.
-	if not msg.args[0] == conf.supybot.nick():
-	    irc.reply("You can't get the key in public. Send me a keyx in pm and try again!")
-            return # and shame the user publically a bit.
+        Gets a key for a channel
+        """
+        # remember that the bot will only fire this command if it's sent via encryption.
+        # check if not in pm and handle appropriately.
+        if not msg.args[0] == conf.supybot.nick():
+            irc.reply("You can't get the key in public. Send me a keyx in pm and try again!")
+                return # and shame the user publically a bit.
 
-	# otherwise, send the key
+        # otherwise, send the key
         if not channel in self._privkey:
-	    irc.reply("I dont have a key for %s. Get an admin to set the key" % channel)
-	else:
-	    irc.reply("the key is %s" % self._privkey[channel]['key'], private=True)
+            irc.reply("I dont have a key for %s. Get an admin to set the key" % channel)
+        else:
+            irc.reply("the key is %s" % self._privkey[channel]['key'], private=True)
     getkey = wrap(getkey, ['channel'])
 
     def encrypt(self, irc, msg, args, channel):
-	"""
-	Turns on encryption
-	"""
-	if not channel in self._privkey:
-	    irc.reply("I don't have a key for %s. Get an admin to set the key" % channel)
+        """
+        Turns on encryption
+        """
+        if not channel in self._privkey:
+            irc.reply("I don't have a key for %s. Get an admin to set the key" % channel)
         else: # turn on the encryption flag.
-	    self._privkey[channel]['encrypt'] = True
+            self._privkey[channel]['encrypt'] = True
             irc.replySuccess()
     encrypt = wrap(encrypt, ['channel'])
 
     def decrypt(self, irc, msg, args, channel):
-	"""
-	Turn off encryption
-	"""
-	if not channel in self._privkey:
-	    return
+        """
+        Turn off encryption
+        """
+        if not channel in self._privkey:
+            return
         else:
-	    self._privkey[channel]['encrypt'] = False # turn off the encryption flag.
-	    irc.replySuccess()
+            self._privkey[channel]['encrypt'] = False # turn off the encryption flag.
+            irc.replySuccess()
     decrypt = wrap(decrypt, ['channel'])
 
 
     def doNotice(self, irc, msg):
         if msg.args[1].startswith('DH1080_INIT'): # if someone does a keyx
-	    self._dh1080_init(irc, msg.nick, msg.args[1]) # initialize the keyx process.
+        self._dh1080_init(irc, msg.nick, msg.args[1]) # initialize the keyx process.
         return
 
 
     # most of this code was inspired by or straight up cribbed from here:
     # https://github.com/kwaaak/py-fishcrypt
     def _dh1080_init(self, irc, target, payload):
-	dh = DH1080Ctx()
-	dh1080_unpack(payload, dh)
-	
-	key = dh1080_secret(dh)
-	keyname = target
-	encrypt = True
-	
-	entry = {'key': key, 'encrypt': encrypt} 
+    dh = DH1080Ctx()
+    dh1080_unpack(payload, dh)
+    
+    key = dh1080_secret(dh)
+    keyname = target
+    encrypt = True
+    
+    entry = {'key': key, 'encrypt': encrypt} 
 
-	self._privkey[keyname] = entry
+    self._privkey[keyname] = entry
 
-	irc.sendMsg(ircmsgs.notice(target, dh1080_pack(dh)))
+    irc.sendMsg(ircmsgs.notice(target, dh1080_pack(dh)))
 
     def _mircryption_cbc_pack(self, hash, text):
-	bf = Blowfish.new(hash)
+    bf = Blowfish.new(hash)
         padded = self._padto(text, 8)
         return '+OK *%s' % (base64.b64encode(self._cbc_encrypt(bf.encrypt, padded, 8)))    
 
     def _mircryption_cbc_unpack(self, hash, text):
-	bf = Blowfish.new(hash)
+    bf = Blowfish.new(hash)
         if not (text.startswith('+OK *') or text.startswith('mcps *')):
             raise ValueError
 
@@ -543,3 +543,4 @@ def dh1080_secret(ctx):
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+
