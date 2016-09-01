@@ -159,7 +159,7 @@ class Fish(callbacks.Privmsg):
         """
         # admin only, please.
         if not ircdb.checkCapability(msg.prefix, 'admin'):
-        irc.errorNoCapability('admin')
+            irc.errorNoCapability('admin')
             return
 
         self._password = password # set the password
@@ -190,7 +190,7 @@ class Fish(callbacks.Privmsg):
         # check if not in pm and handle appropriately.
         if not msg.args[0] == conf.supybot.nick():
             irc.reply("You can't get the key in public. Send me a keyx in pm and try again!")
-                return # and shame the user publically a bit.
+            return # and shame the user publically a bit.
 
         # otherwise, send the key
         if not channel in self._privkey:
@@ -224,8 +224,8 @@ class Fish(callbacks.Privmsg):
 
     def doNotice(self, irc, msg):
         if msg.args[1].startswith('DH1080_INIT'): # if someone does a keyx
-        self._dh1080_init(irc, msg.nick, msg.args[1]) # initialize the keyx process.
-        return
+            self._dh1080_init(irc, msg.nick, msg.args[1]) # initialize the keyx process.
+            return
 
 
     # most of this code was inspired by or straight up cribbed from here:
