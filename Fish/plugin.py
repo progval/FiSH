@@ -245,12 +245,12 @@ class Fish(callbacks.Privmsg):
     irc.sendMsg(ircmsgs.notice(target, dh1080_pack(dh)))
 
     def _mircryption_cbc_pack(self, hash, text):
-    bf = Blowfish.new(hash)
+        bf = Blowfish.new(hash)
         padded = self._padto(text, 8)
         return '+OK *%s' % (base64.b64encode(self._cbc_encrypt(bf.encrypt, padded, 8)))    
 
     def _mircryption_cbc_unpack(self, hash, text):
-    bf = Blowfish.new(hash)
+        bf = Blowfish.new(hash)
         if not (text.startswith('+OK *') or text.startswith('mcps *')):
             raise ValueError
 
