@@ -6,12 +6,13 @@ https://github.com/kwaaak/py-fishcrypt
 The rest was done with the supybot template, much trial and error, facepalming and channel spamming.
 
 If you use it and you like it, I'd love some feedback or maybe a cup of coffee/beer
-BTC: 1CW1q1ABgkNZvQDuUjzDcDNZBvvkgd1fGA
+If you'd like to throw me some Bitcoin, that'd be mighty nice of you: 1CW1q1ABgkNZvQDuUjzDcDNZBvvkgd1fGA
 
-to install, run:
+to install, download this module into your plugin directory and then run:
 pip install -r requirements.txt
 
-Suggested workflow for best security:
+Once that's done, the rest is done with the bot.
+This is my suggested workflow for best security:
 (in a pm to your bot, enter the following commands)
 load fish
 defaultcapability remove fish.setkey
