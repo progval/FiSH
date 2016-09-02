@@ -139,7 +139,7 @@ class Fish(callbacks.Privmsg):
         return msg # and return it.
 
     def listCommands(self): # override the list. Maybe unnecessary, but I don't want people poking around with setpass and setkey.
-        commands = ['getkey', 'encrypt', 'decrypt', 'register']
+        commands = ['getkey', 'encrypt', 'decrypt']
         return commands
 
     def _checkMessage(self, msg, encryptionrequired, pmrequired):

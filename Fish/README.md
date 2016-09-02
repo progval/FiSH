@@ -25,9 +25,9 @@ This is my suggested workflow for best security:
 
 Now that the module is loaded, your bot is capable of accepting keyexchanges.  
 Send a keyexchange to your bot to turn on encryption and send the following commands:  
->setpass <your password here> (ex: setpass key_change_password)  
->setkey <channel> <password> <encryption key> (ex: setkey #cryptochannel key_change_password COMPLICATEDKEY)  
->encrypt <channel> to set the bot into FiSH CBC (mircryption) mode (ex: encrypt #cryptochannel)  
+>setpass `<your password here`> (ex: setpass key_change_password)  
+>setkey `<channel`> `<password`> `<encryption key`> (ex: setkey #cryptochannel key_change_password COMPLICATEDKEY)  
+>encrypt `<channel`> to set the bot into FiSH CBC (mircryption) mode (ex: encrypt #cryptochannel)  
 
 at this point, set your channel encryption in your irc client of choice and you and your bot should have a nice private conversation.
 
@@ -41,14 +41,14 @@ To share the key securely with other users, I suggest having them register on yo
 - As a neat side effect, if your bot is also a relay bot, the relay also becomes encrypted with the same key.
 
 **Function Reference:**  
-*setpass* <password> (hidden from list fish)  
+*setpass* `<password`> (hidden from list fish)  
 What it does: Sets the key-changing password.  
 Who can use it: Restricted to admins only.  
 Note: 
 - this command can only be run via secure message to the bot.   
 - this command is hidden from 'list fish'
 
-*setkey* <channel> <password> <encryption key>  
+*setkey* `<channel`> `<password`> `<encryption key`>  
 What it does: Sets the channel key to a specific encryption key.  
 Who can use it: admins or anyone with fish.setkey capability  
 Note: 
@@ -56,16 +56,16 @@ Note:
 - this command can only be run via secure message to the bot.
 - this command is hidden from 'list fish'
 
-*getkey* <channel>  
+*getkey* `<channel`>  
 What it does: Gets the channel key  
 Who can use it: admins or anyone with fish.getkey capability  
 Note: this command can only be run via secure message to the bot.  
 
-*encrypt* <channel>  
+*encrypt* `<channel`>  
 What it does: turns on encryption for the current channel (if not specified) or for a specific channel  
 Who can use it: admins or anyone with fish.encrypt capability  
 Note: The bot will still "understand" cleartext triggers in encrypted mode, but all bot output is encrypted.  
 
-*decrypt* <channel>  
+*decrypt* `<channel`>  
 What it does: turns off decryption for the current channel (if not specified) or for a specific channel  
 Who can use it: admins or anyone with fish.decrypt capability  
