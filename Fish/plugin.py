@@ -85,6 +85,14 @@ class Fish(callbacks.Privmsg):
         commands = ['getkey', 'encrypt', 'decrypt']
         return commands
 
+    def _checkMessage(self, msg, encryptionrequired, pmrequired):
+        retVal = True # assume it's a good message.
+        if pmrequired and ircutils.isChannel(msg.args[0]):
+            retVal = False # this isn't good.
+        if encryptionrequired and not msg.encrypted:
+            retVal = False # and this isn't good.
+        return retVal
+
     def inFilter(self, irc, msg):
         """
         Function fires on every incoming message. to the bot. Here's where the bulk of it works.
@@ -107,6 +115,8 @@ class Fish(callbacks.Privmsg):
 
         # TODO: Block cleartext sensitive functions here (register/identify)
         # need to find a good way to identify bot functions.
+	
+
     
         # decryption:
         if msg.args[1].startswith('+OK'): # if it looks encrypted
@@ -129,14 +139,14 @@ class Fish(callbacks.Privmsg):
             irc.errorNoCapability('admin')
             return
 
-        if not msg.encrypted: # if the message wasn't flagged as encrypted
-            irc.reply("You're not encrypted. Do a keyx and try again. Clearing password for security.")
+        if not self._checkMessage(msg, True, True): # if the message wasn't flagged as encrypted
+            irc.reply("You've sent this insecurely. Open a private message, keyx the bot and try again. Clearing password for security.")
             self._password = None # let the user know, lock down the module
             return # and exit without processing
 
         self._password = password # set the password
         irc.reply("Key change password set. Please do not share.") # provide user status.
-    setpass = wrap(setpass, ['private', 'text'])
+    setpass = wrap(setpass, ['text'])
 
     def setkey(self, irc, msg, args, channel, password, privkey):
         """<channel> <password> <privkey>
@@ -147,8 +157,8 @@ class Fish(callbacks.Privmsg):
             irc.reply("FiSH module locked down due to password being set publically or in cleartext. Have an Admin set a new password.")
             return # tell the user what to do and bail.
 
-        if not msg.encrypted: #if the message wasn't flagged as encrypted
-            irc.reply("You're not encrypted. Do a keyx and try again. Clearing password for security.")
+        if not self._checkMessage(msg, True, True): #if the message wasn't flagged as encrypted
+            irc.reply("You've sent this insecurely. Open a private message, keyx the bot and try again. Clearing password for security.")
             self._password = None # let the user know, lock down the module
             return # and exit without processing.
 
@@ -156,7 +166,7 @@ class Fish(callbacks.Privmsg):
             entry = {'key': privkey, 'encrypt': False} # encryption off by default
             self._privkey[channel] = entry
             irc.reply("Key set for channel.")
-    setkey = wrap(setkey, ['private', 'channel', 'something', 'something'])
+    setkey = wrap(setkey, ['channel', 'something', 'something'])
  
     def getkey(self, irc, msg, args, channel):
         """<channel>
@@ -169,8 +179,8 @@ class Fish(callbacks.Privmsg):
         #    irc.reply("You can't get the key in public. Send me a keyx in pm and try again!")
         #    return # and shame the user publically a bit.
 
-        if not msg.encrypted: # if the message isn't flagged
-            irc.reply("You're not encrypted. Do a keyx and try again")
+        if not self._checkMessage(msg, True, True): # if the message isn't flagged
+            irc.reply("You've sent this insecurely. Open a private message, keyx the bot and try again.")
             return # tell them without locking the module, this isn't a security issue.
 
         # otherwise, send the key
@@ -178,7 +188,7 @@ class Fish(callbacks.Privmsg):
             irc.reply("I dont have a key for %s. Get an admin to set the key" % channel)
         else:
             irc.reply("the key is %s" % self._privkey[channel]['key'], private=True)
-    getkey = wrap(getkey, ['private', 'channel'])
+    getkey = wrap(getkey, ['channel'])
 
     def encrypt(self, irc, msg, args, channel):
         """
