@@ -33,6 +33,7 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+import supybot.registry as registry
 import supybot.ircmsgs as ircmsgs
 import supybot.conf as conf
 import supybot.ircdb as ircdb
@@ -53,6 +54,14 @@ except ImportError:
     _ = lambda x: x
 
 
+def registerDefaultPlugin(command, plugin): 
+     command = callbacks.canonicalName(command) 
+     conf.registerGlobalValue(conf.supybot.commands.defaultPlugins, 
+                              command, registry.String(plugin, '')) 
+     # This must be set, or the quotes won't be removed. 
+     conf.supybot.commands.defaultPlugins.get(command).set(plugin) 
+
+
 class Fish(callbacks.Privmsg):
     """Providing Fish Encryption."""
     threaded = True
@@ -61,6 +70,54 @@ class Fish(callbacks.Privmsg):
     # for now, I'm settling on leaving these blank on load and letting the operator configure it.
     _privkey = {}
     _password = None
+
+    # called on load
+    def __init__(self, irc):
+        self.__parent = super(Fish, self)
+        self.__parent.__init__(irc)
+        # other initialization.
+        if self.registryValue('disableSensitiveFunctions'):
+        # if we should turn off the other functions...
+            # disable cleartext identify
+            anticap = ircdb.makeAntiCapability('user.identify')
+            conf.supybot.capabilities().add(anticap)
+            # disable cleartext register
+            anticap = ircdb.makeAntiCapability('user.register')
+            conf.supybot.capabilities().add(anticap)
+            # if there's already a default set, unset them
+            try: 
+                conf.supybot.commands.defaultPlugins.unregister('identify') 
+            except registry.NonExistentRegistryEntry:
+                pass
+
+            try: 
+                conf.supybot.commands.defaultPlugins.unregister('register')
+            except registry.NonExistentRegistryEntry:
+                pass
+
+            # and use ours instead.
+            registerDefaultPlugin('identify', 'Fish')
+            registerDefaultPlugin('register', 'Fish')
+
+    def die(self):
+        if self.registryValue('disableSensitiveFunctions'):
+        # we should unbreak the functions.
+            # back to normal
+            conf.supybot.capabilities().add('user.identify')
+            conf.supybot.capabilities().add('user.register')
+            try: 
+                conf.supybot.commands.defaultPlugins.unregister('identify') 
+            except registry.NonExistentRegistryEntry:
+                pass
+
+            try: 
+                conf.supybot.commands.defaultPlugins.unregister('register')
+            except registry.NonExistentRegistryEntry:
+                pass
+            # back to normal
+            registerDefaultPlugin('identify', 'User')
+            registerDefaultPlugin('register', 'User')
+
 
     def outFilter(self, irc, msg):
         """
@@ -82,7 +139,7 @@ class Fish(callbacks.Privmsg):
         return msg # and return it.
 
     def listCommands(self): # override the list. Maybe unnecessary, but I don't want people poking around with setpass and setkey.
-        commands = ['getkey', 'encrypt', 'decrypt']
+        commands = ['getkey', 'encrypt', 'decrypt', 'register']
         return commands
 
     def _checkMessage(self, msg, encryptionrequired, pmrequired):
@@ -116,8 +173,6 @@ class Fish(callbacks.Privmsg):
         # TODO: Block cleartext sensitive functions here (register/identify)
         # need to find a good way to identify bot functions.
 	
-
-    
         # decryption:
         if msg.args[1].startswith('+OK'): # if it looks encrypted
             if target in self._privkey and self._privkey.get(target)['encrypt'] == True: # and this user has encryption on
@@ -148,6 +203,46 @@ class Fish(callbacks.Privmsg):
         irc.reply("Key change password set. Please do not share.") # provide user status.
     setpass = wrap(setpass, ['text'])
 
+    # wrapper for user.register with encryption validation
+    def register(self, irc, msg, args, name, password):
+        """<name> <password>
+
+        Registers <name> with the given password <password> and the current
+        hostmask of the person registering.  You shouldn't register twice; if
+        you're not recognized as a user but you've already registered, use the
+        hostmask add command to add another hostmask to your already-registered
+        user, or use the identify command to identify just for a session.
+        This command (and all other commands that include a password) must be
+        sent to the bot privately, not in a channel.
+        """
+        if not self._checkMessage(msg, True, True):
+            irc.reply("When FiSH is loaded, users can't register plaintext. Sorry")
+            return
+
+        cb = irc.getCallback('User')
+        cb.register(irc, msg, [name, password])
+
+    register = wrap(register, ['private', 'something', 'something'])
+    
+    # wrapper for user.identify with encryption validation
+    def identify(self, irc, msg, args, user, password):
+        """<name> <password>
+
+        Identifies the user as <name>. This command (and all other
+        commands that include a password) must be sent to the bot privately,
+        not in a channel.
+        """
+        print args
+
+        if not self._checkMessage(msg, True, True):
+            irc.reply("When FiSH is loaded, users can't identify plaintext. Sorry")
+            return
+
+        cb = irc.getCallback('User')
+        cb.identify(irc, msg, [user, password])
+
+    identify = wrap(identify, ['private', 'something', 'something'])
+    
     def setkey(self, irc, msg, args, channel, password, privkey):
         """<channel> <password> <privkey>
 

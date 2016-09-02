@@ -59,5 +59,7 @@ Fish = conf.registerPlugin('Fish')
 # conf.registerGlobalValue(Fish, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
+conf.registerGlobalValue(Fish, 'disableSensitiveFunctions',
+    registry.Boolean(True, _("""Instructs the bot whether or not to disable user register and user identify on load of module""")))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
