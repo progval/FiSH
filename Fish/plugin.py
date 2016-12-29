@@ -232,8 +232,6 @@ class Fish(callbacks.Privmsg):
         commands that include a password) must be sent to the bot privately,
         not in a channel.
         """
-        print args
-
         if not self._checkMessage(msg, True, True):
             irc.reply("When FiSH is loaded, users can't identify plaintext. Sorry")
             return
@@ -591,7 +589,6 @@ def dh1080_unpack(msg, ctx):
                 raise MalformedError
             
             if not dh_validate_public(public, q_dh1080, p_dh1080):
-                print invalidmsg
                 pass
                 
             ctx.secret = pow(public, ctx.private, p_dh1080)
@@ -610,7 +607,6 @@ def dh1080_unpack(msg, ctx):
                 raise MalformedError
 
             if not dh_validate_public(public, q_dh1080, p_dh1080):
-                print invalidmsg
                 pass
             
             ctx.secret = pow(public, ctx.private, p_dh1080)
